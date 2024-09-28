@@ -1,3 +1,6 @@
+--					############################  SECTION 1 ############################
+-- In this section, the database tables, functions, stored procedures and triggers will be created.
+
 CREATE DATABASE HospitalDB;
 
 USE HospitalDB;
@@ -71,7 +74,6 @@ GO
 
 
 -- Medical Records table
-
 CREATE TABLE MedicalRecords(
 RecordID int PRIMARY KEY NOT NULL IDENTITY(1,1),
 DoctorID int NOT NULL,
@@ -92,7 +94,6 @@ CONSTRAINT fk_diag_RecordID FOREIGN KEY (RecordID) REFERENCES MedicalRecords(Rec
 GO
 
 
-
 -- Allergy Table
 CREATE TABLE Allergy(
 AllergyID int PRIMARY KEY NOT NULL IDENTITY(1,1),
@@ -101,7 +102,6 @@ RecordID int NOT NULL,
 CONSTRAINT fk_algy_RecordID FOREIGN KEY (RecordID) REFERENCES MedicalRecords(RecordID)
 );
 GO
-
 
 
 -- Medicine Table
@@ -115,8 +115,7 @@ CONSTRAINT fk_med_RecordID FOREIGN KEY (RecordID) REFERENCES MedicalRecords(Reco
 GO
 
 
-
--- THE PAST APPOINTMENTS TABLE IS DESIGNED TO BE A SIMILAR TABLE TO THE APPOINTMENT TABLE BUT WILL ONLY HOLD RECORDS OF APPOINTMENTS THAT HAVE BEEN COMPLETED, I.E. THE APPOINTMENT STATUS IS COMPLETED. THE IDEA IS THAT THIS TABLE WOULD STORE RECORDS OF THE MAIN APPOINTMENT TABLE THAT HAVE BEEN COMPLETED (THE PAST APPOINTMENT TABLE WILL BE DIRECTLY POPULATED WITH ROWS FROM THE MAIN APPOINTMENT TABLE, NO MANUAL INSERT), SO THERE ISN'T A NEED FOR AS SIMILAR CONSTRAINT CHECKS ON THE APPOINTMENTSTARTTIME, APPOINTMENTENDTIME AND APPOINTMENTDATE COLUMNS LIKE IN THE MAIN APPOINTMENT TABLE.
+-- THE PAST APPOINTMENTS TABLE IS DESIGNED TO BE A SIMILAR TABLE TO THE APPOINTMENT TABLE, BUT WILL ONLY HOLD RECORDS OF APPOINTMENTS THAT HAVE BEEN COMPLETED, I.E. THE APPOINTMENT STATUS IS COMPLETED. THE IDEA IS THAT THIS TABLE WOULD STORE RECORDS OF THE MAIN APPOINTMENT TABLE THAT HAVE BEEN COMPLETED (THE PAST APPOINTMENT TABLE WILL BE DIRECTLY POPULATED WITH ROWS FROM THE MAIN APPOINTMENT TABLE, NO MANUAL INSERT), SO THERE ISN'T A NEED FOR AS SIMILAR CONSTRAINT CHECKS ON THE APPOINTMENTSTARTTIME, APPOINTMENTENDTIME AND APPOINTMENTDATE COLUMNS LIKE IN THE MAIN APPOINTMENT TABLE.
 CREATE TABLE PastAppointments(
 AppointmentID int PRIMARY KEY, -- There won't be a need for the identity keyword
 PatientID int NOT NULL,
@@ -134,21 +133,19 @@ CONSTRAINT ck_pstAppointmentStatus CHECK (AppointmentStatus = 'COMPLETED'),	-- T
 GO
 
 
-
 -- Feedback Table
 CREATE TABLE Feedback(
 FeedbackId int PRIMARY KEY NOT NULL IDENTITY(1,1),
 FeedbackComment nvarchar(max) NULL,
 FeedbackRating tinyint NULL,
 AppointmentID int NOT NULL,
-CONSTRAINT ck_FeedbackRating CHECK (FeedbackRating >= 1 AND FeedbackRating <= 5), -- This ensures that ratings will range from 1 to 5.
+CONSTRAINT ck_FeedbackRating CHECK (FeedbackRating >= 1 AND FeedbackRating <= 5), 		-- This ensures that ratings will range from 1 to 5, with 1 being the minimum and 5 being the maximum rating.
 CONSTRAINT fk_fb_AppointmentID FOREIGN KEY (AppointmentID) REFERENCES PastAppointments(AppointmentID)
 );
 GO
 
 
-
--- The DoctorAvailabilitySlot will keep track of doctors available slots for each day.  Each Slots is 30 minutes long.
+-- The DoctorAvailabilitySlot table will keep track of a doctor/s available slots for each day.  Each Slot is 30 minutes long.
 CREATE TABLE DoctorAvailabilitySlot(
 SlotID int PRIMARY KEY NOT NULL IDENTITY(1,1),
 DoctorID int NOT NULL,
@@ -165,8 +162,6 @@ CONSTRAINT ck_da_HospitalEndTime CHECK (DATEPART(HOUR, DATEADD(SECOND, -1, SlotE
 CONSTRAINT ck_da_EndsAfterStartTime CHECK (SlotStartTime < SlotEndTime)
 );
 GO
-
-
 
 
 -- This stored procedure would be used on the Patient Registration portal for patients to register their details on the database. 
@@ -218,7 +213,7 @@ BEGIN TRY
 	INSERT INTO MedicalRecords(DoctorID, PatientID)
 	VALUES (@docID, @pID)
 
-	SET @recordID = SCOPE_IDENTITY(); -- Retrieves the identity value that was generated for the inserted medical record.
+	SET @recordID = SCOPE_IDENTITY(); 		-- Retrieves the identity value that was generated for the inserted medical record.
 	INSERT INTO Diagnosis(Diagnosis, RecordID)
 	VALUES (@diagnosis, @recordID)
 COMMIT TRANSACTION
@@ -245,7 +240,7 @@ BEGIN TRY
 	INSERT INTO MedicalRecords(DoctorID, PatientID)
 	VALUES (@docID, @pID)
 
-	SET @recordID = SCOPE_IDENTITY(); -- Retrieves the identity value that was generated for the inserted medical record.
+	SET @recordID = SCOPE_IDENTITY(); 			-- Retrieves the identity value that was generated for the inserted medical record.
 
 	INSERT INTO Allergy(Allergy, RecordID)
 	VALUES (@allergy, @recordID)
@@ -275,7 +270,7 @@ BEGIN TRY
 	INSERT INTO MedicalRecords(DoctorID, PatientID)
 	VALUES (@docID, @pID)
 
-	SET @recordID = SCOPE_IDENTITY(); -- Retrieves the identity value that was generated for the inserted medical record.
+	SET @recordID = SCOPE_IDENTITY(); 			-- Retrieves the identity value that was generated for the inserted medical record.
 	INSERT INTO Medicine(Medicine, MedicinePrescribedDate, RecordID)
 	VALUES (@medicine, @medPrescDate, @recordID)
 
@@ -396,7 +391,7 @@ END CATCH;
 GO
 
 
---Patient Feedback stored procedure, checks if an appointment has been completed before accepting a feedback.
+--Patient Feedback stored procedure, checks if an appointment has been completed before accepting the patient's feedback.
 CREATE PROCEDURE uspPatientFeedback
 	@comment nvarchar(max),
 	@rating tinyint,
@@ -430,9 +425,7 @@ END CATCH;
 GO
 
 
-
-
---This stored procedure is created inorder to update the status of appointments that have been completed to the COMPLETED status. It can be calle
+--This stored procedure is created in-order to update the status of appointments that have been completed to the COMPLETED status. It can be calle
 CREATE PROCEDURE uspAppointmentCompleted
 @apptID int
 AS
@@ -478,7 +471,6 @@ GO
 
 
 
-
 --This Trigger is initiated when a completed appointment is to be deleted from the appointment table. Instead of deleting the record, the past appoitment table is updated.
 CREATE TRIGGER trgUpdatePastAppointments ON Appointments
 AFTER DELETE
@@ -514,100 +506,102 @@ END CATCH;
 GO
 
 
+--					############################  SECTION 2 ############################
+-- In this section, data is inserted into the tables using insert statements, and the stored procedures.
+	
+-- Entering some values into the Patients table using the PatientRegistration Stored Procedure.
+EXEC uspPatientRegistration 
+@firstName= 'James', @middleName = 'Taiwo', @lastName = 'Bankole', @address1 ='Apartment 5, Sedgewick Court', @address2 = 'Westy Lane', @city = 'Salford', @postcode = 'M6 8TP', 
+@dob = '1999-10-02', @insurance = '0123456789', @username = 'jbanks1', @password = '1@Jbanks', @email = 'jamesbankole@yahoo.com', @telephone = '01314463628',
+@dateJoined = '1999-10-03';
+EXEC uspPatientRegistration 
+@firstName= 'Paul', @middleName = 'Kehinde', @lastName = 'Bankole', @address1 ='Apartment 5, Sedgewick Court', @address2 = 'Westy Lane', @city = 'Salford', @postcode = 'M6 8TP', 
+@dob = '1999-10-02', @insurance = '0123456788', @username = 'pbanksy', @password = '2@BanksP', @email = 'paul.bankole@gmail.com', @telephone = '07414473629',
+@dateJoined = '1999-10-03';
+EXEC uspPatientRegistration 
+@firstName= 'Cameron', @lastName = 'Cleverly', @address1 = '5, Barton Crescent', @address2 = 'Leigh', @city = 'Wigan', @postcode = 'WN7 9WX', 
+@dob = '1982-09-02', @insurance = '0003456990', @username = 'CC300ly', @password = 'CC%Lima', @email = 'cameroncleverly@yahoo.com', @telephone = '07744363698',
+@dateJoined = '2022-01-04';
+EXEC uspPatientRegistration 
+@firstName= 'Charles', @lastName = 'Boulting', @address1 = '10, Dallam Street', @city = 'Manchester', @postcode = 'M1 2BL', 
+@dob = '1985-01-09', @insurance = '0143456780', @username = 'Cboult9', @password = '2@CCwek9', @email = 'cboulting@nhssupport.co.uk', @telephone = '07349463629',
+@dateJoined = '2023-10-03';
+EXEC uspPatientRegistration 
+@firstName= 'Mary', @lastName = 'Singh', @address1 = '16, Ethridge Lane', @city = 'Salford', @postcode = 'M6 9TK', 
+@dob = '1999-11-30', @insurance = '0443456789', @username = 'mSingh4', @password = '8MSLeig$', @email = 'singhmary1@gmail.com', @telephone = '07415463629',
+@dateJoined = '2022-02-15';
+EXEC uspPatientRegistration 
+@firstName= 'Naveer', @lastName = 'Singh', @address1 = '16, Ethridge Lane', @city = 'Salford', @postcode = 'M6 9TK', 
+@dob = '1995-10-02', @insurance = '0943456788', @username = 'nBigSingh', @password = 'kuB2451', @email = 'sing.naveer@chorleydrinks.co.uk', @telephone = '07314493628',
+@dateJoined = '2022-10-03';
+EXEC uspPatientRegistration 
+@firstName= 'Benita', @lastName = 'Demsley', @address1 = '19, Colton Avenue', @city = 'Salford', @postcode = 'M6 1T9', 
+@dob = '2005-03-02', @insurance = '0823456784', @username = 'bdemss1', @password = '1$Bdems', @email = 'bdemsley@yahoo.co.uk', @telephone = '02314463628',
+@dateJoined = '2004-09-04';
+EXEC uspPatientRegistration 
+@firstName= 'Denise', @lastName = 'Maslow', @address1 = 'Maslow Court', @address2 = 'Maslow Close', @city = 'Salford', @postcode = 'M6 7WF', 
+@dob = '1960-02-02', @insurance = '0823456780', @username = 'dMaslow', @password = 'D3n1seM', @email = 'denise@maslowcorp.co.uk', @telephone = '01414463628',
+@dateJoined = '1999-01-04';
+EXEC uspPatientRegistration 
+@firstName= 'Mark', @lastName = 'Maslow', @address1 = 'Maslow Court', @city = 'Salford', @postcode = 'M6 7WF', 
+@dob = '1959-04-10', @insurance = '0923456680', @username = 'mMaslow', @password = 'M@rkM1', @email = 'mark@maslowcorp.co.uk', @telephone = '01414463623',
+@dateJoined = '1999-10-16';
+EXEC uspPatientRegistration 
+@firstName= 'Christopher', @lastName = 'Barton', @address1 = '4, Winchester Lane', @city = 'Manchester', @postcode = 'M11 7AV', 
+@dob = '1992-06-27', @insurance = '0923456789', @username = 'cbarton', @password = 'cBarton2', @email = 'chris@bluefinishing.co.uk', @telephone = '01384463629',
+@dateJoined = '2015-10-21';
+EXEC uspPatientRegistration 
+@firstName= 'Catherine', @lastName = 'Pudsley', @address1 = '92, Fairbone Street', @address2 = 'Bolton, Greater Manchester', @postcode = 'M27 7BF', 
+@dob = '1994-10-02', @insurance = '0523456789', @username = 'PudsKate', @password = '28@CateP', @email = 'katepudsley@yahoo.co.uk', @telephone = '01314463628',
+@dateJoined = '2021-11-28';
+EXEC uspPatientRegistration 
+@firstName= 'Samuel', @lastName = 'Moloney', @address1 = '17, Charlton Lane ', @address2 = 'Moston', @city = 'Manchester', @postcode = 'M30 9TV', 
+@dob = '2005-10-02', @insurance = '0723456789', @username = 'SamMolo', @password = '27@SamMo2', @email = 'smoloney@gmail.com', @telephone = '07394463628',
+@dateJoined = '2018-05-27';
+GO
 
--- We will insert some values into the Patients table using the PatientRegistration Stored Procedure.
---EXEC uspPatientRegistration 
---@firstName= 'James', @middleName = 'Taiwo', @lastName = 'Bankole', @address1 ='Apartment 5, Sedgewick Court', @address2 = 'Westy Lane', @city = 'Salford', @postcode = 'M6 8TP', 
---@dob = '1999-10-02', @insurance = '0123456789', @username = 'jbanks1', @password = '1@Jbanks', @email = 'jamesbankole@yahoo.com', @telephone = '01314463628',
---@dateJoined = '1999-10-03';
---EXEC uspPatientRegistration 
---@firstName= 'Paul', @middleName = 'Kehinde', @lastName = 'Bankole', @address1 ='Apartment 5, Sedgewick Court', @address2 = 'Westy Lane', @city = 'Salford', @postcode = 'M6 8TP', 
---@dob = '1999-10-02', @insurance = '0123456788', @username = 'pbanksy', @password = '2@BanksP', @email = 'paul.bankole@gmail.com', @telephone = '07414473629',
---@dateJoined = '1999-10-03';
---EXEC uspPatientRegistration 
---@firstName= 'Cameron', @lastName = 'Cleverly', @address1 = '5, Barton Crescent', @address2 = 'Leigh', @city = 'Wigan', @postcode = 'WN7 9WX', 
---@dob = '1982-09-02', @insurance = '0003456990', @username = 'CC300ly', @password = 'CC%Lima', @email = 'cameroncleverly@yahoo.com', @telephone = '07744363698',
---@dateJoined = '2022-01-04';
---EXEC uspPatientRegistration 
---@firstName= 'Charles', @lastName = 'Boulting', @address1 = '10, Dallam Street', @city = 'Manchester', @postcode = 'M1 2BL', 
---@dob = '1985-01-09', @insurance = '0143456780', @username = 'Cboult9', @password = '2@CCwek9', @email = 'cboulting@nhssupport.co.uk', @telephone = '07349463629',
---@dateJoined = '2023-10-03';
---EXEC uspPatientRegistration 
---@firstName= 'Mary', @lastName = 'Singh', @address1 = '16, Ethridge Lane', @city = 'Salford', @postcode = 'M6 9TK', 
---@dob = '1999-11-30', @insurance = '0443456789', @username = 'mSingh4', @password = '8MSLeig$', @email = 'singhmary1@gmail.com', @telephone = '07415463629',
---@dateJoined = '2022-02-15';
---EXEC uspPatientRegistration 
---@firstName= 'Naveer', @lastName = 'Singh', @address1 = '16, Ethridge Lane', @city = 'Salford', @postcode = 'M6 9TK', 
---@dob = '1995-10-02', @insurance = '0943456788', @username = 'nBigSingh', @password = 'kuB2451', @email = 'sing.naveer@chorleydrinks.co.uk', @telephone = '07314493628',
---@dateJoined = '2022-10-03';
---EXEC uspPatientRegistration 
---@firstName= 'Benita', @lastName = 'Demsley', @address1 = '19, Colton Avenue', @city = 'Salford', @postcode = 'M6 1T9', 
---@dob = '2005-03-02', @insurance = '0823456784', @username = 'bdemss1', @password = '1$Bdems', @email = 'bdemsley@yahoo.co.uk', @telephone = '02314463628',
---@dateJoined = '2004-09-04';
---EXEC uspPatientRegistration 
---@firstName= 'Denise', @lastName = 'Maslow', @address1 = 'Maslow Court', @address2 = 'Maslow Close', @city = 'Salford', @postcode = 'M6 7WF', 
---@dob = '1960-02-02', @insurance = '0823456780', @username = 'dMaslow', @password = 'D3n1seM', @email = 'denise@maslowcorp.co.uk', @telephone = '01414463628',
---@dateJoined = '1999-01-04';
---EXEC uspPatientRegistration 
---@firstName= 'Mark', @lastName = 'Maslow', @address1 = 'Maslow Court', @city = 'Salford', @postcode = 'M6 7WF', 
---@dob = '1959-04-10', @insurance = '0923456680', @username = 'mMaslow', @password = 'M@rkM1', @email = 'mark@maslowcorp.co.uk', @telephone = '01414463623',
---@dateJoined = '1999-10-16';
---EXEC uspPatientRegistration 
---@firstName= 'Christopher', @lastName = 'Barton', @address1 = '4, Winchester Lane', @city = 'Manchester', @postcode = 'M11 7AV', 
---@dob = '1992-06-27', @insurance = '0923456789', @username = 'cbarton', @password = 'cBarton2', @email = 'chris@bluefinishing.co.uk', @telephone = '01384463629',
---@dateJoined = '2015-10-21';
---EXEC uspPatientRegistration 
---@firstName= 'Catherine', @lastName = 'Pudsley', @address1 = '92, Fairbone Street', @address2 = 'Bolton, Greater Manchester', @postcode = 'M27 7BF', 
---@dob = '1994-10-02', @insurance = '0523456789', @username = 'PudsKate', @password = '28@CateP', @email = 'katepudsley@yahoo.co.uk', @telephone = '01314463628',
---@dateJoined = '2021-11-28';
---EXEC uspPatientRegistration 
---@firstName= 'Samuel', @lastName = 'Moloney', @address1 = '17, Charlton Lane ', @address2 = 'Moston', @city = 'Manchester', @postcode = 'M30 9TV', 
---@dob = '2005-10-02', @insurance = '0723456789', @username = 'SamMolo', @password = '27@SamMo2', @email = 'smoloney@gmail.com', @telephone = '07394463628',
---@dateJoined = '2018-05-27';
---GO
-
--- We will insert the different departments now, a stored procedure is not used in this situation as there aren't any data integrity checks done for department details.
---INSERT INTO Departments(DepartmentName, DepartmentLocation)
---VALUES ('Accident and Emergency', 'Block B, Fairlough Lane'),
---	 ('Cardiology', 'Block A, Fairlough Lane'),
---	 ('Pediatrics', 'Block c, Fairlough Lane'),
---	 ('Gastroenterology', 'Block D, Fairlough Lane'),
---	 ('General Surgery', 'Block E, Fairlough Lane'),
---	 ('Obstetrics and Gynaecology', 'Block F, Fairlough Lane'),
---	 ('Maternity', 'Block G, Fairlough Lane'),
---	 ('Neurology', 'Block H, Fairlough Lane'),
---	 ('Radiotherapy', 'Block J, Fairlough Lane'),
---	 ('Ear nose and throat (ENT)', 'Block K, Fairlough Lane'),
---	 ('Elderly services', 'Block M, Fairlough Lane');
-
-
--- We will now populate the doctors table using the newDoctor stored procedure.
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---VALUES ('Benedicta', 'Bello', 'Obstetrics and Gynaecology', 6);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Paul', 'Sandston', 'Cardiothoracic surgery', 2);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Ria', 'Padukone', 'Neuropathology', 8);
---INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Sade', 'Oluwabimpe', 'Cole', 'Geriatric Medicine', 11);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Kuma', 'Kenyatta', 'Gastroenterologists', 4);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Chelsea', 'Darwin', 'Gastroenterologists', 4);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Carlton', 'Cole', 'Pediatric cardiology', 3);
---INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Yun', 'Oh', 'Mi', 'Emergency Medicine', 1);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Ji', 'Chang-wook', 'Geriatric psychiatry', 11);
---INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Michelle', 'Alozie', 'Maternal-fetal medicine', 7);
---INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
---	VALUES ('Asisat', 'Lamina','Oshoala', 'Plastic, reconstructive and aesthetic surgery', 1);
---GO
+-- Some values will now be entered into the departments table, a stored procedure is not used in this situation as there aren't any data integrity checks done for the department table.
+INSERT INTO Departments(DepartmentName, DepartmentLocation)
+VALUES ('Accident and Emergency', 'Block B, Fairlough Lane'),
+	 ('Cardiology', 'Block A, Fairlough Lane'),
+	 ('Pediatrics', 'Block c, Fairlough Lane'),
+	 ('Gastroenterology', 'Block D, Fairlough Lane'),
+	 ('General Surgery', 'Block E, Fairlough Lane'),
+	 ('Obstetrics and Gynaecology', 'Block F, Fairlough Lane'),
+	 ('Maternity', 'Block G, Fairlough Lane'),
+	 ('Neurology', 'Block H, Fairlough Lane'),
+	 ('Radiotherapy', 'Block J, Fairlough Lane'),
+	 ('Ear nose and throat (ENT)', 'Block K, Fairlough Lane'),
+	 ('Elderly services', 'Block M, Fairlough Lane');
 
 
----- Inserting Doctor Availability Slots for all doctors
+-- Doctor details will be entered into the doctors table using the newDoctor stored procedure.
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+VALUES ('Benedicta', 'Bello', 'Obstetrics and Gynaecology', 6);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Paul', 'Sandston', 'Cardiothoracic surgery', 2);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Ria', 'Padukone', 'Neuropathology', 8);
+INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Sade', 'Oluwabimpe', 'Cole', 'Geriatric Medicine', 11);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Kuma', 'Kenyatta', 'Gastroenterologists', 4);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Chelsea', 'Darwin', 'Gastroenterologists', 4);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Carlton', 'Cole', 'Pediatric cardiology', 3);
+INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Yun', 'Oh', 'Mi', 'Emergency Medicine', 1);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Ji', 'Chang-wook', 'Geriatric psychiatry', 11);
+INSERT INTO Doctors (DoctorFirstName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Michelle', 'Alozie', 'Maternal-fetal medicine', 7);
+INSERT INTO Doctors (DoctorFirstName, DoctorMiddleName, DoctorLastName, DoctorSpecialty, DepartmentID)
+	VALUES ('Asisat', 'Lamina','Oshoala', 'Plastic, reconstructive and aesthetic surgery', 1);
+GO
+
+
+---- Doctor Availability Slots is entered uisng the uspInsertDoctorAvailabilitySlot stored procedure.
 EXEC uspInsertDoctorAvailabilitySlot
 @docID = 1 , @startTime = '10:00',	@endTime = '10:30', @slotDate = '2024-04-28';
 EXEC uspInsertDoctorAvailabilitySlot
@@ -717,47 +711,47 @@ EXEC uspInsertDoctorAvailabilitySlot
 GO
 
 
---Patient(Benita), to see a maternity doctor(Michelle Alozie) in the morning
+-- Patient(Benita), to see a maternity doctor(Michelle Alozie) in the morning
 EXEC uspBookNewAppointment
 @pID = 7, @docID = 10, @apptDate = '2024-04-28', @startTime = '10:00', @endTime = '10:30', @deptID = 7;
 
---Patient(Samuel), to see doctor(Ria) in the evening
+-- Patient(Samuel), to see doctor(Ria) in the evening
 EXEC uspBookNewAppointment
 @pID = 12, @docID = 3, @apptDate = '2024-04-28', @startTime = '16:00', @endTime = '16:30', @deptID = 8;
 
---Patient(Mark Maslow), to see doctor(Kuma) in the Morning
+-- Patient(Mark Maslow), to see doctor(Kuma) in the Morning
 EXEC uspBookNewAppointment
 @pID = 9, @docID = 5, @apptDate = '2024-04-28', @startTime = '10:00', @endTime = '10:30', @deptID = 4;
 
---Patient(Denise Maslow), to see doctor(Kuma) in the Morning
+-- Patient(Denise Maslow), to see doctor(Kuma) in the Morning
 EXEC uspBookNewAppointment
 @pID = 8, @docID = 5, @apptDate = '2024-04-28', @startTime = '09:30', @endTime = '10:00', @deptID = 4;
 
 
---Patient(James Taiwo Bankole), to see doctor(Chelsea) in the Morning
+-- Patient(James Taiwo Bankole), to see doctor(Chelsea) in the Morning
 EXEC uspBookNewAppointment
 @pID = 1, @docID = 6, @apptDate = '2024-04-28', @startTime = '10:00', @endTime = '10:30', @deptID = 4;
 
---Patient(Cameron Cleverly), to see doctor(Chelsea) in the Evening
+-- Patient(Cameron Cleverly), to see doctor(Chelsea) in the Evening
 EXEC uspBookNewAppointment
 @pID = 3, @docID = 6, @apptDate = '2024-04-28', @startTime = '16:00', @endTime = '16:30', @deptID = 4;
 
---Patient(Mary Singh), to see doctor(Benedicta), Obstetrics and Gynaecology in the Morning
+-- Patient(Mary Singh), to see doctor(Benedicta), Obstetrics and Gynaecology in the Morning
 EXEC uspBookNewAppointment
 @pID = 5, @docID = 1, @apptDate = '2024-04-28', @startTime = '10:00', @endTime = '10:30', @deptID = 6;
 
---Patient(Catherine Pudsley), to see doctor(Benedicta), Obstetrics and Gynaecology in the Evening
+-- Patient(Catherine Pudsley), to see doctor(Benedicta), Obstetrics and Gynaecology in the Evening
 EXEC uspBookNewAppointment
 @pID = 11, @docID = 1, @apptDate = '2024-04-28', @startTime = '14:30', @endTime = '15:00', @deptID = 6;
 GO
 
---Patient(Catherine Pudsley), to see doctor(Ria), in the Morning
+-- Patient(Catherine Pudsley), to see doctor(Ria), in the Morning
 EXEC uspBookNewAppointment
 @pID = 11, @docID = 3, @apptDate = '2024-04-28', @startTime = '16:30', @endTime = '17:00', @deptID = 8;
 GO
 
 
- --Doctors setting appointments to completed.
+-- Doctors setting appointments to completed using the uspAppointmentCompleted stored procedure.
 EXEC uspAppointmentCompleted @apptID = 18;
 EXEC uspAppointmentCompleted @apptID = 20;
 EXEC uspAppointmentCompleted @apptID = 21;
@@ -765,6 +759,7 @@ EXEC uspAppointmentCompleted @apptID = 22;
 EXEC uspAppointmentCompleted @apptID = 24;
 EXEC uspAppointmentCompleted @apptID = 25;
 
+-- Doctors can use the uspNewDiagnosis, uspNewMedicine and uspNewAllergy stored procedures to update new medicine, allergies and diagnosis.
 EXEC uspNewDiagnosis
 	@docID = 10,
 	@pID = 7,
@@ -910,7 +905,7 @@ EXEC uspNewMedicine
 	@medPrescDate = '2024-04-22';
 GO
 
-
+-- The uspPatientFeedback stored procedure is used by the patient to get their feedback.
 EXEC uspPatientFeedback 
 @comment = 'The doctor broke the news of my pregnancy to me in such an wholesome way. I have been trying for a child for about 5 years. I am really thankful to doctor Michelle and the team for their efforts.',
 @rating = 5,
@@ -943,19 +938,20 @@ EXEC uspPatientFeedback
 @comment = 'Thank You Doctor',
 @rating = 5,
 @apptID = 25;
+GO
 
 
 
-
---											############################  PART 2 ############################
-
--- QUESTION 2 - A constraint that checks that the appointment date is not in the past.
+--					############################  SECTION 3 ############################
+-- In this section, we will be answering some questions which we can use to extract data from the tables and/or alter the tables.
+	
+-- 		####### QUESTION 1 - A constraint that checks that the appointment date is not in the past.
 ALTER TABLE Appointments
 ADD CONSTRAINT ck_Date_NotInPast CHECK (AppointmentDate >= CAST(GETDATE() AS date) AND AppointmentStartTime > CAST(GETDATE() AS time(0)));
 GO
 
 
---QUESTION 3 - List all the patients with older than 40 and have Cancer in diagnosis.
+-- 		####### QUESTION 2 - List all the patients with older than 40 and have Cancer in diagnosis.
 SELECT p.PatientFirstName + ' ' + ISNULL(p.PatientMiddleName, '') + ' ' + p.PatientLastName as PatientFullName , p.PatientID, DATEDIFF(YEAR, p.PatientDOB, GETDATE()) as Age, d.Diagnosis
 FROM Patients as p INNER JOIN MedicalRecords as m
 ON p.PatientID = m.PatientID INNER JOIN Diagnosis as d
@@ -964,8 +960,8 @@ WHERE DATEDIFF(YEAR, p.PatientDOB, GETDATE()) > 40 AND d.Diagnosis LIKE '%cancer
 GO
 
 
--- QUESTION 4 
--- (a) Search the database of the hospital for matching character strings by name of medicine. Results should be sorted with most recent medicine prescribed date first.
+-- 		####### QUESTION 3 
+-- Search the database of the hospital for matching character strings by the name of a medicine. Results should be sorted with most recent medicine prescribed date first.
 
 CREATE PROCEDURE SearchMedicine(@searchString AS nvarchar(100))
 AS 
@@ -977,12 +973,14 @@ AS
 	END;
 GO
 
---Executing the stored procedure 
+-- Executing the stored procedure 
 EXEC SearchMedicine 'c';
 GO
 
 
--- (b)Return a full list of diagnosis and allergies for a specific patient who has an appointment today (i.e., the system date when the query is run)
+--  		####### QUESTION 4
+-- Return a full list of diagnosis and allergies for a specific patient who has an appointment today (i.e., the system date when the query is run) using a stored procedure.
+
 CREATE PROCEDURE uspPatientDiagnosisAndAllergy(@pID AS int)
 AS
 BEGIN
@@ -1015,7 +1013,7 @@ EXEC uspPatientDiagnosisAndAllergy @pID = 11
 
 
 
--- c) Update the details for an existing doctor
+-- 		####### QUESTION 5: Update the details for an existing doctor
 CREATE PROCEDURE UpdateDoctorDetails(
 	@docId AS INT, 
 	@docFirstName AS NVARCHAR(30) = NULL, 
@@ -1052,7 +1050,10 @@ GO
 EXEC UpdateDoctorDetails @docID = 5, @docMiddleName = 'John';
 
 
--- (d)
+-- 		####### QUESTION 6 
+-- Delete the appointment with an already completed status using a stored procedure
+
+-- A new stored procedure is created to delete appointments that have beeen completed.
 CREATE PROCEDURE uspDeleteCompletedAppointments
 AS
 BEGIN TRANSACTION
@@ -1075,7 +1076,10 @@ EXEC uspDeleteCompletedAppointments;
 GO
 
 
--- Question 5
+-- 		####### QUESTION 7
+-- A view is created for the hospital to retrieve the the appointment date and time, showing all previous and current appointments for all doctors, and
+--  including details of the department (the doctor is associated with), doctor’s specialty and any associate review/feedback given for a doctor.
+	
 CREATE VIEW doctorAppointmentRecords 
 AS 
 SELECT
@@ -1097,13 +1101,14 @@ JOIN Feedback as f
 ON f.AppointmentID = pa.AppointmentID
 GO
 
-
+-- A select statement is used to query the view that was created.
 SELECT * FROM doctorAppointmentRecords
 
 
--- Question 6
--- Drop the existing constraint (CONSTRAINT ck_AppointmentStatus CHECK (AppointmentStatus IN ('PENDING', 'COMPLETED', 'CANCELLED')),)
--- Add a new to accomodate the 'AVAILABLE' status
+-- 		####### QUESTION 8 
+-- Create a trigger so that the current state of an appointment can be changed to available when it is cancelled.
+	
+-- Before creating the trigger,  we add a new check string to accomodate the 'AVAILABLE' status in the ck_AppointmentStatus constraint.
 ALTER TABLE Appointments
 DROP CONSTRAINT ck_AppointmentStatus;
 
@@ -1111,7 +1116,7 @@ ALTER TABLE Appointments
 ADD CONSTRAINT ck_AppointmentStatus CHECK (AppointmentStatus IN ('PENDING', 'COMPLETED', 'CANCELLED', 'AVAILABLE'));
 GO
 
--- Then the trigger is created which instead of updating the column when the status is set to CANCELLED, it updates the appointment status to AVAILABLE.
+-- The trigger is then created which instead of updating the column when the status is set to CANCELLED, it updates the appointment status to AVAILABLE.
 
 CREATE TRIGGER trgMakeCancelledApptAvailable
 ON
@@ -1131,7 +1136,7 @@ AS BEGIN
 END;
 GO
 
-
+-- The trigger is tested by setting the appointment status to cancelled
 UPDATE Appointments
 SET AppointmentStatus = 'CANCELLED'
 WHERE PatientID = 12;
@@ -1147,37 +1152,9 @@ GO
 
 SELECT * FROM Appointments
 
--- QUESTION 7 
+	
+-- 		####### QUESTION 9 
+-- A query that allows the hospital to identify the number of completed appointments with the specialty of doctors as ‘Gastroenterologists’.
 SELECT COUNT(AppointmentID) AS GastroenterologistsAppointment
 FROM PastAppointments
 WHERE DoctorID IN (SELECT DoctorID FROM Doctors WHERE DoctorSpecialty = 'Gastroenterologists')
-
-
-
--- QUESTION 8
--- DATABASE ROLES WILL BE CREATED AT THIS POINT AND GRANTED ACCESS TO STORE PROCEDURES
-
-CREATE ROLE HOSPITAL_ADMIN;
-CREATE ROLE PATIENT;
-CREATE ROLE DOCTOR;
-
--- GRANTING EXECUTE ACCESS ON NEEDED STORED PROCEDURES TO HOSPITAL_ADMIN
-GRANT EXECUTE ON uspClearBookedandExpiredSlot to HOSPITAL_ADMIN
-GRANT EXECUTE ON uspInsertDoctorAvailabilitySlot to HOSPITAL_ADMIN
-GRANT EXECUTE ON uspPatientRegistration to HOSPITAL_ADMIN
-GRANT EXECUTE ON uspBookNewAppointment to HOSPITAL_ADMIN
-
---GRANTING SELECT ACCESS ON VIEWS TO HOSPITAL_ADMIN
-GRANT SELECT ON doctorAppointmentRecords to HOSPITAL_ADMIN
-
--- GRANTING EXECUTE ACCESS ON NEEDED STORED PROCEDURES TO HOSPITAL_ADMIN
-GRANT EXECUTE ON uspAppointmentCompleted to DOCTOR
-GRANT EXECUTE ON uspNewMedicine to DOCTOR
-GRANT EXECUTE ON uspNewAllergy to DOCTOR
-GRANT EXECUTE ON uspNewDiagnosis to DOCTOR
-  
- -- GRANTING SELECT ACCESS ON NEEDED STORED PROCEDURES TO PATIENT
-GRANT EXECUTE ON uspPatientFeedback to PATIENT
-GRANT EXECUTE ON uspBookNewAppointment to PATIENT
-GRANT EXECUTE ON uspPatientRegistration to PATIENT
-
